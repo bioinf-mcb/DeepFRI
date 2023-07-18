@@ -9,15 +9,15 @@ if __name__ == "__main__":
     parser.add_argument('-cm', '--cmap', type=str,  help="Protein contact map to be annotated (in *npz file format).")
     parser.add_argument('-pdb', '--pdb_fn', type=str,  help="Protein PDB file to be annotated.")
     parser.add_argument('--cmap_csv', type=str,  help="Catalogue with chain to file path mapping.")
-    parser.add_argument('--pdb_dir', type=str,  help="Directory with PDB files of predicted Rosetta/DMPFold structures.")
+    parser.add_argument('--pdb_dir', type=str,  help="Directory with PDB files.")
     parser.add_argument('--fasta_fn', type=str,  help="Fasta file with protein sequences.")
     parser.add_argument('--model_config', type=str, default='./trained_models/model_config.json', help="JSON file with model names.")
-    parser.add_argument('-ont', '--ontology', type=str, default=['mf'], nargs='+', required=True, choices=['mf', 'bp', 'cc', 'ec'],
-                        help="Gene Ontology/Enzyme Commission.")
+    parser.add_argument('-ont', '--ontology', type=str, default=['mf'], nargs='+', required=True, choices=['mf', 'bp', 'cc'],
+                        help="Gene Ontology.")
     parser.add_argument('-o', '--output_fn_prefix', type=str, default='DeepFRI', help="Save predictions/saliency in file.")
     parser.add_argument('-v', '--verbose', help="Prints predictions.", action="store_true")
     parser.add_argument('--use_guided_grads', help="Use guided grads to compute gradCAM.", action="store_true")
-    parser.add_argument('--saliency', help="Compute saliency maps for every protein and every MF-GO term/EC number.", action="store_true")
+    parser.add_argument('--saliency', help="Compute saliency maps for every protein and every MF-GO term.", action="store_true")
     args = parser.parse_args()
 
     with open(args.model_config) as json_file:
@@ -51,6 +51,6 @@ if __name__ == "__main__":
         predictor.save_predictions(args.output_fn_prefix + "_" + ont.upper() + "_pred_scores.json")
 
         # save saliency maps
-        if args.saliency and ont in ['mf', 'ec']:
+        if args.saliency and ont in ['mf', 'bp', 'cc']:
             predictor.compute_GradCAM(layer_name=layer_name, use_guided_grads=args.use_guided_grads)
             predictor.save_GradCAM(args.output_fn_prefix + "_" + ont.upper() + "_saliency_maps.json")

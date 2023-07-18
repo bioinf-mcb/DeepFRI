@@ -30,37 +30,21 @@ def make_distance_maps(pdbfile, chain=None, sequence=None):
 
 def load_GO_annot(filename):
     """ Load GO annotations """
-    onts = ['molecular_function', 'biological_process', 'cellular_component']
     prot2annot = {}
-    goterms = {ont: [] for ont in onts}
-    gonames = {ont: [] for ont in onts}
+    goterms = []
+    gonames = []
     with open(filename, mode='r') as tsvfile:
         reader = csv.reader(tsvfile, delimiter='\t')
 
-        # molecular function
         next(reader, None)  # skip the headers
-        goterms[onts[0]] = next(reader)
+        goterms = next(reader)
         next(reader, None)  # skip the headers
-        gonames[onts[0]] = next(reader)
-
-        # biological process
+        gonames = next(reader)
         next(reader, None)  # skip the headers
-        goterms[onts[1]] = next(reader)
-        next(reader, None)  # skip the headers
-        gonames[onts[1]] = next(reader)
-
-        # cellular component
-        next(reader, None)  # skip the headers
-        goterms[onts[2]] = next(reader)
-        next(reader, None)  # skip the headers
-        gonames[onts[2]] = next(reader)
-
-        next(reader, None)  # skip the headers
+        
         for row in reader:
-            prot, prot_goterms = row[0], row[1:]
-            prot2annot[prot] = {ont: [] for ont in onts}
-            for i in range(3):
-                prot2annot[prot][onts[i]] = [goterm for goterm in prot_goterms[i].split(',') if goterm != '']
+            prot, prot_goterms = row[0], row[1]
+            prot2annot[prot] = [goterm for goterm in prot_goterms.split(',') if goterm != '']
     return prot2annot, goterms, gonames
 
 
@@ -71,10 +55,10 @@ def load_EC_annot(filename):
     with open(filename, mode='r') as tsvfile:
         reader = csv.reader(tsvfile, delimiter='\t')
 
-        # molecular function
         next(reader, None)  # skip the headers
         ec_numbers = next(reader)
         next(reader, None)  # skip the headers
+        
         for row in reader:
             prot, prot_ec_numbers = row[0], row[1]
             prot2annot[prot] = [ec_num for ec_num in prot_ec_numbers.split(',')]
@@ -84,8 +68,7 @@ def load_EC_annot(filename):
 def retrieve_pdb(pdb, chain, chain_seqres, pdir):
     pdb_list = PDBList()
     pdb_list.retrieve_pdb_file(pdb, pdir=pdir)
-    ca, cb = make_distance_maps(pdir + '/' + pdb +'.cif', chain=chain, sequence=chain_seqres)
-
+    ca, cb = make_distance_maps(pdir + '/AF-' + pdb +'-F1-model_v4.cif', chain=chain, sequence=chain_seqres)
     return ca[chain]['contact-map'], cb[chain]['contact-map']
 
 
@@ -102,14 +85,13 @@ def load_list(fname):
     return pdb_chain_list
 
 
-def write_annot_npz(prot, prot2seq=None, out_dir=None):
+def write_annot_npz(prot, prot2seq=None, out_dir=None, cif_dir=None):
     """
     Write to *.npz file format.
     """
-    pdb, chain = prot.split('-')
-    print ('pdb=', pdb, 'chain=', chain)
+    pdb, chain = prot, 'A'
     try:
-        A_ca, A_cb = retrieve_pdb(pdb.lower(), chain, prot2seq[prot], pdir=os.path.join(out_dir, 'tmp_PDB_files_dir'))
+        A_ca, A_cb = retrieve_pdb(pdb, chain, prot2seq[prot], pdir=cif_dir)
         np.savez_compressed(os.path.join(out_dir, prot),
                             C_alpha=A_ca,
                             C_beta=A_cb,
@@ -122,10 +104,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-annot', type=str, help="Input file (*.tsv) with preprocessed annotations.")
     parser.add_argument('-ec', help="Use EC annotations.", action="store_true")
-    parser.add_argument('-seqres', type=str, default='./data/pdb_seqres.txt.gz', help="PDB chain seqres fasta.")
+    parser.add_argument('-seqres', type=str, help="PDB chain seqres fasta.")
     parser.add_argument('-num_threads', type=int, default=20, help="Number of threads (CPUs) to use in the computation.")
     parser.add_argument('-bc', type=str, help="Clusters of PDB chains computd by Blastclust.")
-    parser.add_argument('-out_dir', type=str, default='./data/annot_pdb_chains_npz/', help="Output directory with distance maps saved in *.npz format.")
+    parser.add_argument('-out_dir', type=str, help="Output directory with distance maps saved in *.npz format.")
+    parser.add_argument('-cif_dir', type=str, help="Input directory with PDB/CIF files.")
     args = parser.parse_args()
 
     # load annotations
@@ -138,9 +121,12 @@ if __name__ == '__main__':
         print ("### number of annotated proteins: %d" % (len(prot2goterms)))
 
     # load sequences
-    prot2seq = read_fasta(args.seqres)
-    print ("### number of proteins with seqres sequences: %d" % (len(prot2seq)))
-
+    if args.seqres is not None:
+        prot2seq = read_fasta(args.seqres)
+        print ("### number of proteins with seqres sequences: %d" % (len(prot2seq)))
+    else:
+        prot2seq = None
+        
     # load clusters
     pdb2clust = {}
     if args.bc is not None:
@@ -157,22 +143,30 @@ if __name__ == '__main__':
     print ("### number of unannot proteins: %d" % (len(unannot_prots)))
     """
 
-    to_be_processed = set(prot2seq.keys())
-    if len(prot2goterms) != 0:
-        to_be_processed = to_be_processed.intersection(set(prot2goterms.keys()))
-    if len(prot2goterms) != 0:
-        to_be_processed = to_be_processed.intersection(set(pdb2clust.keys()))
-    print ("Number of pdbs to be processed=", len(to_be_processed))
-    print (to_be_processed)
+    to_be_processed = set(prot2goterms.keys())
+    if prot2seq is None:
+        prot2seq = dict()
+        for prot in to_be_processed:
+            prot2seq[prot] = ''
+            
+    # to_be_processed = set(prot2seq.keys())
+    # if len(prot2goterms) != 0:
+    #     to_be_processed = to_be_processed.intersection(set(prot2goterms.keys()))
+    # if len(prot2goterms) != 0:
+    #     to_be_processed = to_be_processed.intersection(set(pdb2clust.keys()))
+    print ("Number of pdbs to be processed:", len(to_be_processed))
 
     # process on multiple cpus
     nprocs = args.num_threads
     out_dir = args.out_dir
+    cif_dir = args.cif_dir
     import multiprocessing
-    nprocs = np.minimum(nprocs, multiprocessing.cpu_count())
+    # nprocs = np.minimum(nprocs, multiprocessing.cpu_count())
+    print("Number of threads:", nprocs)
     if nprocs > 4:
         pool = multiprocessing.Pool(processes=nprocs)
-        pool.map(partial(write_annot_npz, prot2seq=prot2seq, out_dir=out_dir),
+        pool.map(partial(write_annot_npz, prot2seq=prot2seq, 
+                         out_dir=out_dir, cif_dir=cif_dir),
                  to_be_processed)
     else:
         for prot in to_be_processed:

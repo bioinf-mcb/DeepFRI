@@ -40,39 +40,24 @@ def load_list(fname):
 
 def load_GO_annot(filename):
     """ Load GO annotations """
-    onts = ['molecular_function', 'biological_process', 'cellular_component']
     prot2annot = {}
-    goterms = {ont: [] for ont in onts}
-    gonames = {ont: [] for ont in onts}
+    goterms = []
+    gonames = []
     with open(filename, mode='r') as tsvfile:
         reader = csv.reader(tsvfile, delimiter='\t')
 
-        # molecular function
         next(reader, None)  # skip the headers
-        goterms[onts[0]] = next(reader)
+        goterms = next(reader)
         next(reader, None)  # skip the headers
-        gonames[onts[0]] = next(reader)
-
-        # biological process
-        next(reader, None)  # skip the headers
-        goterms[onts[1]] = next(reader)
-        next(reader, None)  # skip the headers
-        gonames[onts[1]] = next(reader)
-
-        # cellular component
-        next(reader, None)  # skip the headers
-        goterms[onts[2]] = next(reader)
-        next(reader, None)  # skip the headers
-        gonames[onts[2]] = next(reader)
+        gonames = next(reader)
 
         next(reader, None)  # skip the headers
         for row in reader:
-            prot, prot_goterms = row[0], row[1:]
-            prot2annot[prot] = {ont: [] for ont in onts}
-            for i in range(3):
-                goterm_indices = [goterms[onts[i]].index(goterm) for goterm in prot_goterms[i].split(',') if goterm != '']
-                prot2annot[prot][onts[i]] = np.zeros(len(goterms[onts[i]]), dtype=np.int64)
-                prot2annot[prot][onts[i]][goterm_indices] = 1.0
+            prot, prot_goterms = row[0], row[1]
+            prot2annot[prot] = []
+            goterm_indices = [goterms.index(goterm) for goterm in prot_goterms.split(',') if goterm != '']
+            prot2annot[prot] = np.zeros(len(goterms), dtype=np.int64)
+            prot2annot[prot][goterm_indices] = 1.0
     return prot2annot, goterms, gonames
 
 
@@ -137,9 +122,7 @@ class GenerateTFRecord(object):
         if self.ec:
             d_feature['ec_labels'] = labels(self.prot2annot[prot_id])
         else:
-            d_feature['mf_labels'] = labels(self.prot2annot[prot_id]['molecular_function'])
-            d_feature['bp_labels'] = labels(self.prot2annot[prot_id]['biological_process'])
-            d_feature['cc_labels'] = labels(self.prot2annot[prot_id]['cellular_component'])
+            d_feature['labels'] = labels(self.prot2annot[prot_id])
 
         d_feature['ca_dist_matrix'] = self._float_feature(ca_dist_matrix.reshape(-1))
         d_feature['cb_dist_matrix'] = self._float_feature(cb_dist_matrix.reshape(-1))
@@ -179,23 +162,26 @@ class GenerateTFRecord(object):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-annot', type=str, default='./data/nrPDB-GO_2020.06.18_annot.tsv', help="Input file (*.tsv) with preprocessed annotations.")
+    parser.add_argument('-annot', type=str, help="Input file (*.tsv) with preprocessed annotations.")
     parser.add_argument('-ec', help="Use EC annotations.", action="store_true")
-    parser.add_argument('-prot_list', type=str, default='./data/nrPDB-GO_2019.06.18_train.txt',
-                        help="Input file (*.txt) with a set of protein IDs with distMAps in npz_dir.")
-    parser.add_argument('-npz_dir', type=str, default='./data/annot_pdb_chains_npz/',
-                        help="Directory with distance maps saved in *.npz format to be loaded.")
+    parser.add_argument('-prot_list', type=str, help="Input file (*.txt) with a set of protein IDs with distMAps in npz_dir.")
+    parser.add_argument('-npz_dir', type=str, help="Directory with distance maps saved in *.npz format to be loaded.")
     parser.add_argument('-num_threads', type=int, default=20, help="Number of threads (CPUs) to use in the computation.")
     parser.add_argument('-num_shards', type=int, default=20, help="Number of tfrecord files per protein set.")
-    parser.add_argument('-tfr_prefix', type=str, default='/mnt/ceph/users/vgligorijevic/ContactMaps/TFRecords/PDB_GO_train',
-                        help="Directory with tfrecord files for model training.")
+    parser.add_argument('-tfr_prefix', type=str, help="Directory with tfrecord files for model training.")
     args = parser.parse_args()
 
+    print('Loading PDB list')
     prot_list = load_list(args.prot_list)
+    print('Loading annotations')
     if args.ec:
         prot2annot, _ = load_EC_annot(args.annot)
     else:
         prot2annot, _, _ = load_GO_annot(args.annot)
 
+    print('Number of structures to be processed:', len(prot_list))
+    print('Number of all annotated structures:  ', len(prot2annot))
+
     tfr = GenerateTFRecord(prot_list, prot2annot, args.ec, args.npz_dir, args.tfr_prefix, num_shards=args.num_shards)
+    print('TFR class created')
     tfr.run(num_threads=args.num_threads)

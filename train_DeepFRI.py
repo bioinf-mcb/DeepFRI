@@ -39,17 +39,18 @@ if __name__ == "__main__":
     train_tfrecord_fn = args.train_tfrecord_fn + '*'
     valid_tfrecord_fn = args.valid_tfrecord_fn + '*'
 
+    print('Loading annotations...')
     # load annotations
     if args.ontology == 'ec':
         prot2annot, goterms, gonames, counts = load_EC_annot(args.annot_fn)
     else:
         prot2annot, goterms, gonames, counts = load_GO_annot(args.annot_fn)
-    goterms = goterms[args.ontology]
-    gonames = gonames[args.ontology]
+    #goterms = goterms[args.ontology]
+    #gonames = gonames[args.ontology]
     output_dim = len(goterms)
 
     # computing weights for imbalanced go classes
-    class_sizes = counts[args.ontology]
+    class_sizes = counts #[args.ontology]
     mean_class_size = np.mean(class_sizes)
     pos_weights = mean_class_size / class_sizes
     pos_weights = np.maximum(1.0, np.minimum(10.0, pos_weights))
@@ -76,35 +77,3 @@ if __name__ == "__main__":
         out_params['gonames'] = gonames
         json.dump(out_params, fw, indent=1)
 
-    Y_pred = []
-    Y_true = []
-    proteins = []
-    path = '/mnt/home/vgligorijevic/Projects/NewMethods/Contact_maps/DeepFRIer2/preprocessing/data/annot_pdb_chains_npz/'
-    with open(args.test_list, mode='r') as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=',')
-        next(csv_reader, None)  # header
-        for row in csv_reader:
-            prot = row[0]
-            cmap = np.load(path + prot + '.npz')
-            sequence = str(cmap['seqres'])
-            Ca_dist = cmap['C_alpha']
-
-            A = np.double(Ca_dist < args.cmap_thresh)
-            S = seq2onehot(sequence)
-
-            # ##
-            S = S.reshape(1, *S.shape)
-            A = A.reshape(1, *A.shape)
-
-            # results
-            proteins.append(prot)
-            Y_pred.append(model.predict([A, S]).reshape(1, output_dim))
-            Y_true.append(prot2annot[prot][args.ontology].reshape(1, output_dim))
-
-    pickle.dump({'proteins': np.asarray(proteins),
-                 'Y_pred': np.concatenate(Y_pred, axis=0),
-                 'Y_true': np.concatenate(Y_true, axis=0),
-                 'ontology': args.ontology,
-                 'goterms': goterms,
-                 'gonames': gonames},
-                open(args.model_name + '_results.pckl', 'wb'))
