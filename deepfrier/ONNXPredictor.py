@@ -191,9 +191,14 @@ class Predictor(object):
                 for row in sorted_rows:
                     writer.writerow(
                         [prot, row[0], '{:.5f}'.format(row[2]), row[1]])
+        self.flush()
 
     def export_csv(self, output_fn: str):
         self.save_file(output_fn, ",")
 
     def export_tsv(self, output_fn: str):
         self.save_file(output_fn, "\t")
+
+    def flush(self):
+        self.prot2goterms = {}
+        self.goidx2chains = {}
