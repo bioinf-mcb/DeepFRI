@@ -1,0 +1,9 @@
+numpy==1.23.5
+tensorflow
+tensorflow-gpu     # comment out if you don't have GPU
+scikit-learn
+biopython
+networkx           # comment out if you're not going to retrain DeepFRI
+matplotlib         # comment out if you don't wish to create saliency maps
+seaborn            # comment out if you don't wish to create saliency maps
+onnxruntime

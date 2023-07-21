@@ -1,6 +1,22 @@
-# DeepFRI
-Deep functional residue identification
-<img src="figs/pipeline.png">
+# DeepFRI v1.1
+
+Deep functional residue identification. 
+
+This repository contains release v1.1 that includes original DeepFRI LSTM-GCN architecture but retrained on [AlphaFold models](https://alphafold.ebi.ac.uk/) with [Gene Ontology Uniprot](https://www.ebi.ac.uk/GOA/) annotations. Note that CNN model hasn't been retrained. 
+
+The upgrade allows for much greater coverage of GO-terms as compared to DeepFRI v1.0 but requires protein structures as input. Therefore, if you need similar performance but on protein sequence data, you may wish to consider usage of [Metagenomic-DeepFRI](https://github.com/bioinf-mcb/Metagenomic-DeepFRI) with DeepFRI v1.1 pre-trained models for prediction. 
+
+In contrary to original DeepFRI (v1.0), the 1.1 release hasn't been trained to predict Enzyme Commission (EC) numbers.
+
+<p>
+    <img src="figs/pipeline.png">
+    <em>DeepFRI LSTM-GCN architecture</em>
+</p>
+
+<p>
+    <img src="figs/comparison.png">
+    <em>Number of predicted GO-terms in a given information content range for DeepFRI v1.0, v.1.1 and v1.1. without GO-term propagation</em>
+</p>
 
 ## Citing
 ```
@@ -17,19 +33,19 @@ Deep functional residue identification
 }
 
 ```
-## Dependencies
+## Installation
 
-*DeepFRI* is tested to work under Python 3.7.
-
-The required dependencies for *DeepFRI* are  [TensorFlow](https://www.tensorflow.org/), [Biopython](https://biopython.org/) and [scikit-learn](http://scikit-learn.org/).
-To install all dependencies run:
+The easiest way to install DeepFRI is to use Conda:
 
 ```
-pip install .
+conda create -n deepfri_env --file requirements.txt 
 ```
+Please check out the `requirements.txt` and comment out unnecessary packages (see details in the file).
 
+# Protein function prediction with GPU
 
-# Protein function prediction
+DeepFRI v1.1 has been trained on a GPU and the resulted models requires GPU for inference. If you don't have GPU please go to [CPU](#cpu) section.
+
 To predict protein functions use `predict.py` script with the following options:
 
 * `seq`             str, Protein sequence as a string
@@ -39,7 +55,7 @@ To predict protein functions use `predict.py` script with the following options:
 * `cmap_csv`        str, Filename of the catalogue (in `*.csv` file format) containg mapping between protein names and directory with `*.npz` files (see `examples/catalogue_pdb_chains.csv`)
 * `fasta_fn`        str, Fasta filename (see `examples/pdb_chains.fasta`)
 * `model_config`    str, JSON file with model filenames (see `trained_models/`)
-* `ont`             str, Ontology (`mf` - Molecular Function, `bp` - Biological Process, `cc` - Cellular Component, `ec` - Enzyme Commission)
+* `ont`             str, Ontology (`mf` - Molecular Function, `bp` - Biological Process, `cc` - Cellular Component)
 * `output_fn_prefix`   str, Output filename (sampe prefix for predictions/saliency will be used)
 * `verbose`         bool, Whether or not to print function prediction results
 * `saliency`        bool, Whether or not to compute class activaton maps (outputs a `*.json` file)
@@ -123,7 +139,6 @@ Protein GO-term/EC-number Score GO-term/EC-number name
 
 ```
 >> python predict.py --cmap_csv examples/catalogue_pdb_chains.csv -ont mf -v
-
 ```
 
 ### Output:
@@ -185,26 +200,13 @@ query_prot GO:0005509 0.99824 calcium ion binding
 
 See files in: `examples/outputs/`
 
+#  <a name="cpu"></a> Protein function prediction with CPU
 
-# Training DeepFRI
-To train *DeepFRI* run the following command from the project directory:
-```
->> python train_DeepFRI.py -h
-```
+For quick predictions (with up to a few % drop in accuracy) you can run DeepFRI v1.1 on CPU using `predict_fast.py` with the following options:
 
-or to launch jobs run the following script:
-```
->> ./run_train_DeepFRI.sh
-```
-
-## Output
-Generated files:
-* `model_name_prefix_ont_model.hdf5`   trained model with architecture and weights saved in HDF5 format
-* `model_name_prefix_ont_pred_scores.pckl` pickle file with predicted GO term/EC number scores for test proteins
-* `model_name_prefix_ont_model_params.json` JSON file with metadata (GO terms/names, architecture params, etc.)
-
-See examples of pre-trained models (`*.hdf5`) and model params (`*.json`) in: `trained_models/`.
-
+* `input`             str, Name of a PDB file
+* `input_file`            str, Directory with cleaned PDB files
+* `models`             str, Models to use (`mf` - Molecular Function, `bp` - Biological Process, `cc` - Cellular Component)
 
 # Functional residue identification
 To visualize class activation (saliency) maps use `viz_gradCAM.py` script with the following options:
@@ -231,17 +233,12 @@ Generated files:
 
 # Data
 
-Data (train and validation) used for training DeepFRI model are provided as TensorFlow-specific `TFRecord` files and they can be downloaded from:
-
-| PDB | SWISS-MODEL |
-| --- | --- |
-| [Gene Ontology](https://users.flatironinstitute.org/~renfrew/DeepFRI_data/PDB-GO.tar.gz)(19GB) | [Gene Ontology](https://users.flatironinstitute.org/~renfrew/DeepFRI_data/SWISS-MODEL-GO.tar.gz)(165GB) |
-| [Enzyme Commission](https://users.flatironinstitute.org/~renfrew/DeepFRI_data/PDB-EC.tar.gz)(13GB) | [Enzyme Commission](https://users.flatironinstitute.org/~renfrew/DeepFRI_data/SWISS-MODEL-EC.tar.gz)(117GB) |
+Data (train and validation) used for training DeepFRI v1.1 model are provided as TensorFlow-specific `TFRecord` and require a few TB of disk space. If you wish to get access to that files, please write to: <pawel.szczerbiak@uj.edu.pl>.
 
 # Pretrained models
 
 Pretrained models can be downloaded from:
-* [Models](https://users.flatironinstitute.org/~renfrew/DeepFRI_data/trained_models.tar.gz) (use these models if you run DeepFRI on GPU)
-* [Newest Models](https://users.flatironinstitute.org/~renfrew/DeepFRI_data/newest_trained_models.tar.gz) (use these models if you run DeepFRI on CPU)
+* [GPU models]() (use these models if you run DeepFRI v1.1 on GPU with `predict.py`)
+* [CPU Models]() (use these models if you run DeepFRI v1.1 on CPU with `predict_fast.py`)
 
 Uncompress `tar.gz` file into the DeepFRI directory (`tar xvzf trained_models.tar.gz -C /path/to/DeepFRI`).
