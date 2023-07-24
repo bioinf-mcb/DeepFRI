@@ -238,7 +238,7 @@ Data (train and validation) used for training DeepFRI v1.1 model are provided as
 # Pretrained models
 
 Pretrained models can be downloaded from:
-* [GPU models]() (use these models if you run DeepFRI v1.1 on GPU with `predict.py`)
-* [CPU Models]() (use these models if you run DeepFRI v1.1 on CPU with `predict_fast.py`)
+* [GPU models](https://ujchmura-my.sharepoint.com/:u:/g/personal/pawel_szczerbiak_uj_edu_pl/EQapH9FwjsdPrQNLejNhvUkBPUE0CAV-jrioj-NlNFSB8g?e=kKwjxV) (use these models if you run DeepFRI v1.1 on GPU with `predict.py`)
+* [CPU Models](https://ujchmura-my.sharepoint.com/:u:/g/personal/pawel_szczerbiak_uj_edu_pl/ESSNbXW5HM9OnFunXcZMxBkB5uDMAF-D8Vx958PDNnl_5A?e=69FDQp) (use these models if you run DeepFRI v1.1 on CPU with `predict_fast.py`)
 
 Uncompress `tar.gz` file into the DeepFRI directory (`tar xvzf trained_models.tar.gz -C /path/to/DeepFRI`).
