@@ -132,7 +132,7 @@ class Predictor(object):
         S = seq2onehot(seqres)
         S = S.reshape(1, *S.shape)
         inputDetails = self.session.get_inputs()
-        if self.gcn:
+        if cmap is not None and self.gcn:
             A = cmap.reshape(1, *cmap.shape)
             prediction = self.session.run(
                 None, {
