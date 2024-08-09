@@ -218,7 +218,7 @@ See files in: `examples/outputs/`
 
 # Data
 
-Data (train and validation) used for training deepFRI v1.1 model are provided as TensorFlow-specific `TFRecord` and require a few TB of disk space. If you wish to get access to that files, please write to: <pawel.szczerbiak@uj.edu.pl>.
+Data (train and validation) used for training deepFRI v1.1 model are provided as TensorFlow-specific `TFRecord` and require a few TB of disk space. If you wish to get access to that files, please write to: <p.szczerbiak@sanoscience.org>.
 
 # Pretrained models
 
