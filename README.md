@@ -2,20 +2,20 @@
 
 Deep functional residue identification. 
 
-This repository contains release v1.1 that includes original DeepFRI LSTM-GCN architecture but retrained on [AlphaFold models](https://alphafold.ebi.ac.uk/) with [Gene Ontology Uniprot](https://www.ebi.ac.uk/GOA/) annotations. Note that CNN model hasn't been retrained. 
+This repository contains release v1.1 that includes original deepFRI LSTM-GCN architecture but retrained on [AlphaFold models](https://alphafold.ebi.ac.uk/) with [Gene Ontology Uniprot](https://www.ebi.ac.uk/GOA/) annotations. Note that CNN model hasn't been retrained. 
 
-The upgrade allows for much greater coverage of GO-terms as compared to DeepFRI v1.0 but requires protein structures as input. Therefore, if you need similar performance but on protein sequence data, you may wish to consider usage of [Metagenomic-DeepFRI](https://github.com/bioinf-mcb/Metagenomic-DeepFRI) with DeepFRI v1.1 pre-trained models for prediction. 
+The upgrade allows for much greater coverage of GO-terms as compared to deepFRI v1.0 but requires protein structures as input. Therefore, if you need similar performance but on protein sequence data, you may wish to consider usage of [Metagenomic-DeepFRI](https://github.com/bioinf-mcb/Metagenomic-DeepFRI) with deepFRI v1.1 pre-trained models for prediction. 
 
-In contrary to original DeepFRI (v1.0), the 1.1 release hasn't been trained to predict Enzyme Commission (EC) numbers.
+In contrary to original deepFRI (v1.0), the 1.1 release hasn't been trained to predict Enzyme Commission (EC) numbers.
 
 <p>
     <img src="figs/pipeline.png">
-    <em>DeepFRI LSTM-GCN architecture</em>
+    <em>deepFRI LSTM-GCN architecture</em>
 </p>
 
 <p>
     <img src="figs/comparison.png">
-    <em>Number of predicted GO-terms in a given information content range for DeepFRI v1.0, v.1.1 and v1.1. without GO-term propagation</em>
+    <em>Number of predicted GO-terms in a given information content range for deepFRI v1.0, v.1.1 and v1.1. without GO-term propagation</em>
 </p>
 
 ## Citing
@@ -35,16 +35,32 @@ In contrary to original DeepFRI (v1.0), the 1.1 release hasn't been trained to p
 ```
 ## Installation
 
-The easiest way to install DeepFRI is to use Conda:
+The easiest way to install deepFRI is to use Conda:
 
 ```
 conda create -n deepfri_env --file requirements.txt 
 ```
 Please check out the `requirements.txt` and comment out unnecessary packages (see details in the file).
 
+#  <a name="cpu"></a> Protein function prediction with CPU
+
+For quick predictions (with up to a few % drop in accuracy) you can run deepFRI v1.1 on CPU using `predict_fast.py` with the following options:
+
+1. `--input`  or `-i`, str, path to PDB file
+2. `--input_file`  or `-f`, str, path to folder with PDB files
+3. `--seq` or `-s`, str, input sequence 
+4. `--fasta_fn` , str, path to fasta file with input sequences
+5. `--output_folder` or `-o`, str, path to output folder (each prediction is saved to a separate output file as `PDBNAME_MODELNAME.csv`)
+6. `--verbose` or `v`, whether to print prediction on the screen
+7. `--models` or `-m`, str, models to use (`mf` - Molecular Function, `bp` - Biological Process, `cc` - Cellular Component)
+8. `--propagate` or `-p`, whether to propagate output predictions using GO graph
+
+**NOTE 1:** options 1., 2., 3., 4. are mutually exclusive.  
+**NOTE 2**: if a sequence is provided as input, ESMFold API is used to predict structure.
+
 # Protein function prediction with GPU
 
-DeepFRI v1.1 has been trained on a GPU and the resulted models requires GPU for inference. If you don't have GPU please go to [CPU](#cpu) section.
+deepFRI v1.1 has been trained on a GPU and the resulted models requires GPU for inference. If you don't have GPU please go to [CPU](#cpu) section.
 
 To predict protein functions use `predict.py` script with the following options:
 
@@ -65,7 +81,7 @@ Generated files (see `examples/outputs/`):
 * `output_fn_prefix_MF_pred_scores.json`   Predictions in the `*.json` file with keys: `pdb_chains`, `Y_hat`, `goterms`, `gonames`
 * `output_fn_prefix_MF_saliency_maps.json` JSON file storing a dictionary of saliency maps for each predicted function of every protein
 
-DeepFRI offers 6 possible options for predicting functions. See examples below.
+deepFRI offers 6 possible options for predicting functions. See examples below.
 
 ## Option 1: predicting functions of a protein from its contact map
 
@@ -200,45 +216,14 @@ query_prot GO:0005509 0.99824 calcium ion binding
 
 See files in: `examples/outputs/`
 
-#  <a name="cpu"></a> Protein function prediction with CPU
-
-For quick predictions (with up to a few % drop in accuracy) you can run DeepFRI v1.1 on CPU using `predict_fast.py` with the following options:
-
-* `input`             str, Name of a PDB file
-* `input_file`            str, Directory with cleaned PDB files
-* `models`             str, Models to use (`mf` - Molecular Function, `bp` - Biological Process, `cc` - Cellular Component)
-
-# Functional residue identification
-To visualize class activation (saliency) maps use `viz_gradCAM.py` script with the following options:
-
-* `saliency_fn` str, JSON filename with saliency maps generated by `predict.py` script (see Option 6 above)
-* `list_all`    bool, list all proteins and their predicted GO terms with corresponding class activation (saliency) maps
-* `protein_id`  str, protein (PDB chain), saliency maps of which are to be visualized for each predicted function
-* `go_id`       str, GO term, saliency maps of which are to be visualized
-* `go_name`     str, GO name, saliency maps of which are to be visualized
-
-Generated files:
-* `saliency_fig_PDB-chain_GOterm.png`  class activation (saliency) map profile over sequence (see fig below, right)
-* `pymol_viz.py` pymol script for mapping salient residues onto 3D structure (pymol output is shown in fig below, left)
-
-## Example:
-
-```
->>> python viz_gradCAM.py -i ./examples/outputs/DeepFRI_MF_saliency_maps.json -p 1S3P-A -go GO:0005509
-```
-
-### Output:
-<img src="figs/saliency.png">
-
-
 # Data
 
-Data (train and validation) used for training DeepFRI v1.1 model are provided as TensorFlow-specific `TFRecord` and require a few TB of disk space. If you wish to get access to that files, please write to: <pawel.szczerbiak@uj.edu.pl>.
+Data (train and validation) used for training deepFRI v1.1 model are provided as TensorFlow-specific `TFRecord` and require a few TB of disk space. If you wish to get access to that files, please write to: <pawel.szczerbiak@uj.edu.pl>.
 
 # Pretrained models
 
 Pretrained models can be downloaded from:
-* [GPU models](https://ujchmura-my.sharepoint.com/:u:/g/personal/pawel_szczerbiak_uj_edu_pl/EQapH9FwjsdPrQNLejNhvUkBPUE0CAV-jrioj-NlNFSB8g?e=kKwjxV) (use these models if you run DeepFRI v1.1 on GPU with `predict.py`)
-* [CPU Models](https://ujchmura-my.sharepoint.com/:u:/g/personal/pawel_szczerbiak_uj_edu_pl/ESSNbXW5HM9OnFunXcZMxBkB5uDMAF-D8Vx958PDNnl_5A?e=69FDQp) (use these models if you run DeepFRI v1.1 on CPU with `predict_fast.py`)
+* [GPU models](https://ujchmura-my.sharepoint.com/:u:/g/personal/pawel_szczerbiak_uj_edu_pl/EQapH9FwjsdPrQNLejNhvUkBPUE0CAV-jrioj-NlNFSB8g?e=kKwjxV) (use these models if you run deepFRI v1.1 on GPU with `predict.py`)
+* [CPU Models](https://ujchmura-my.sharepoint.com/:u:/g/personal/pawel_szczerbiak_uj_edu_pl/ESSNbXW5HM9OnFunXcZMxBkB5uDMAF-D8Vx958PDNnl_5A?e=69FDQp) (use these models if you run deepFRI v1.1 on CPU with `predict_fast.py`)
 
-Uncompress `tar.gz` file into the DeepFRI directory (`tar xvzf trained_models.tar.gz -C /path/to/DeepFRI`).
+Uncompress `tar.gz` file into the deepFRI directory (`tar xvzf trained_models.tar.gz -C /path/to/DeepFRI`).
