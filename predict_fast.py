@@ -1,5 +1,12 @@
 import tempfile
+import argparse
+import warnings
+import obonet
+import networkx
 import numpy as np
+
+from logging import getLogger
+from pathlib import Path
 
 from deepfrier.ONNXPredictor import Predictor
 from deepfrier.fold import fold_protein
@@ -7,15 +14,9 @@ from deepfrier.fold import fold_protein
 from Bio.PDB.PDBParser import PDBParser
 from Bio import SeqIO
 
-import argparse
 
 # ignore warnings
-import warnings
 warnings.filterwarnings("ignore")
-
-from logging import getLogger
-import obonet
-import networkx
 
 graph = obonet.read_obo("go-basic.obo")
 
@@ -64,24 +65,25 @@ if __name__ == "__main__":
     group.add_argument('-f', '--input_file', type=str, help='Input file with paths to PDB files')
     group.add_argument('-s', '--seq', type=str, help='Input sequence. It will be folded using ESMFold (requires internet access)')
     group.add_argument('--fasta_fn', type=str, help='Input fasta file')
-
+    parser.add_argument('-o', '--output_folder', type=str, help='Output folder')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Print predictions')
     parser.add_argument('-m', '--models', nargs='+', type=str, required=True, help='Models to use')
-    parser.add_argument('-p', '--propagate', action='store_true', help='Propagate predictions to neighboring residues')
-    
+    parser.add_argument('-p', '--propagate', action='store_true', help='Propagate predictions using GO graph')
+
     args = parser.parse_args()
 
     assert len(args.models) > 0, "No models specified"
-    assert all([m in ['cc', 'mf', 'bp'] for m in args.models]), "Invalid model name"  
+    assert all([m in ['cc', 'mf', 'bp'] for m in args.models]), "Invalid model name"
 
     # load PDB file
-    model_template = "onnx_models/DeepFRI-UNIPROT_GraphConv_gcd_512-512-512_fcd_1024_ca_10.0_ext_desc_{0}_cpu"
+    model_template = "trained_models/DeepFRI-UNIPROT_GraphConv_gcd_512-512-512_fcd_1024_ca_10.0_ext_desc_{0}_cpu"
 
     models = {
         "cc": Predictor(model_template.format('cc'), gcn=True, threads=1),
         "mf": Predictor(model_template.format('mf'), gcn=True, threads=1),
         "bp": Predictor(model_template.format('bp'), gcn=True, threads=1),
     }
-    
+
     fnames = []
 
     if args.input:
@@ -96,13 +98,25 @@ if __name__ == "__main__":
         for record in SeqIO.parse(args.fasta_fn, "fasta"):
             fname = fold_protein(str(record.seq))
             fnames.append(fname)
+
+    OUT_PATH = Path(args.output_folder)
+    OUT_PATH.mkdir(parents=True, exist_ok=True)
+
     for fname in fnames:
+        fname_trunc = Path(fname).stem
+
+        if args.verbose:
+            print(f"\n{fname_trunc}")
+
         try:
             c_alpha, seq = load_predicted_PDB(fname)
         except KeyError:
             print("Failed to load PDB file "+fname)
             continue
         cmap = (c_alpha < THRESHOLD).astype(np.int32)
+
+        if args.verbose:
+            print("model,go_id,score,go_name,is_propagated,depth_in_go_graph")
 
         for model in args.models:
             predictor = models[model]
@@ -114,11 +128,14 @@ if __name__ == "__main__":
             if args.propagate:
                 predicted_goterms = explode_all_goterms(predicted_goterms)
 
-            print("model,go_id,score,go_name,propagated,depth")
-            for goterm, score in predicted_goterms:
-                goname = graph.nodes[goterm]['name']
-                propagated = "F"
-                if goterm not in original_goterms:
-                    propagated = "T"
-                num_parents = len(explode_goterm(goterm))
-                print(model+","+goterm+","+str(score)+","+goname+","+propagated+","+str(num_parents))
+            with open(OUT_PATH / f"{fname_trunc}_{model}.csv", 'w') as f:
+                f.write("model,go_id,score,go_name,is_propagated,depth_in_go_graph\n")
+                for goterm, score in predicted_goterms:
+                    goname = graph.nodes[goterm]['name']
+                    propagated = "F"
+                    if goterm not in original_goterms:
+                        propagated = "T"
+                    num_parents = len(explode_goterm(goterm))
+                    if args.verbose:
+                        print(model+","+goterm+","+str(score)+","+goname+","+propagated+","+str(num_parents))
+                    f.write(model+","+goterm+","+str(score)+","+goname+","+propagated+","+str(num_parents)+"\n")
