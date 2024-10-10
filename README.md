@@ -32,6 +32,17 @@ In contrary to original deepFRI (v1.0), the 1.1 release hasn't been trained to p
 	journal = {bioRxiv}
 }
 
+@article {Szczerbiak2024.08.14.607935,
+	author = {Szczerbiak, Pawe{\l} and Szydlowski, Lukasz and Wydma{\'n}ski, Witold and Douglas Renfrew, P. and Leman, Julia Koehler and Kosciolek, Tomasz},
+	title = {Large protein databases reveal structural complementarity and functional locality},
+	elocation-id = {2024.08.14.607935},
+	year = {2024},
+	doi = {10.1101/2024.08.14.607935},
+	publisher = {Cold Spring Harbor Laboratory},
+	URL = {https://www.biorxiv.org/content/early/2024/08/17/2024.08.14.607935},
+	eprint = {https://www.biorxiv.org/content/early/2024/08/17/2024.08.14.607935.full.pdf},
+	journal = {bioRxiv}
+}
 ```
 ## Installation
 
