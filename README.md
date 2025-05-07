@@ -233,8 +233,6 @@ Data (train and validation) used for training deepFRI v1.1 model are provided as
 
 # Pretrained models
 
-Pretrained models can be downloaded from:
-* [GPU models](https://ujchmura-my.sharepoint.com/:u:/g/personal/pawel_szczerbiak_uj_edu_pl/EQapH9FwjsdPrQNLejNhvUkBPUE0CAV-jrioj-NlNFSB8g?e=kKwjxV) (use these models if you run deepFRI v1.1 on GPU with `predict.py`)
-* [CPU Models](https://ujchmura-my.sharepoint.com/:u:/g/personal/pawel_szczerbiak_uj_edu_pl/ESSNbXW5HM9OnFunXcZMxBkB5uDMAF-D8Vx958PDNnl_5A?e=69FDQp) (use these models if you run deepFRI v1.1 on CPU with `predict_fast.py`)
+Pretrained CPU models can be downloaded from [figshare](https://figshare.com/articles/dataset/Large_protein_databases_reveal_structural_complementarity_and_functional_locality/27203073). Use these models if you run deepFRI v1.1 on CPU with `predict_fast.py`.
 
-Uncompress `tar.gz` file into the deepFRI directory (`tar xvzf trained_models.tar.gz -C /path/to/DeepFRI`).
+Uncompress the content of `deepFRI_v11_trained_models_CPU.zip` file into the deepFRI directory with model weights i.e. `/path/to/DeepFRI/trained_models`.
